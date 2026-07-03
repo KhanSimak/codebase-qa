@@ -1,0 +1,17 @@
+venv/
+.venv/
+
+__pycache__/
+*.pyc
+
+.env
+
+.pytest_cache/
+.mypy_cache/
+
+.cache/
+.huggingface/
+
+repos/
+
+*.log

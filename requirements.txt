@@ -1,0 +1,48 @@
+# Final phase — full pipeline: hybrid search, HyDE, reranking, token budgets,
+# cost tracing, SSE streaming, call graph, incremental ingest, eval framework.
+
+fastapi==0.115.0
+uvicorn[standard]==0.30.0
+pydantic==2.7.0
+pydantic-settings==2.3.0
+
+# Vector database
+qdrant-client==1.9.0
+
+
+
+torch==2.3.1
+sentence-transformers==3.0.0
+optimum[onnxruntime]==1.19.0
+transformers==4.39.3
+onnx==1.16.1
+onnxruntime==1.18.0
+onnxscript==0.1.0
+numpy==1.26.4
+# Local embeddings — zero AP
+# Range, not exact pin: optimum 1.19.0 caps transformers<4.40.0,
+# sentence-transformers 3.0.0 needs >=4.34.0. 4.39.3 satisfies both.
+# A range here (instead of ==4.41.0) avoids re-breaking this if either
+# package's allowed range shifts slightly in a future patch release.
+
+
+# Keyword search (Phase 2+)
+rank-bm25==0.2.2
+
+# Caching layer (Phase 2+)
+redis[asyncio]==5.0.4
+
+# NEW in final phase — token counting for the budget manager
+tiktoken==0.7.0
+
+# Repo cloning + diffing
+gitpython==3.1.43
+
+# LLM for HyDE rewriting, compression, and final answer generation —
+# Groq (llama-3.1-8b-instant), OpenAI-compatible API, genuine no-credit-card
+# free tier, ~560 tok/s on Groq's LPU hardware.
+groq==1.1.2
+
+python-dotenv==1.0.1
+
+
