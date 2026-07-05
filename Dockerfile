@@ -11,15 +11,15 @@ WORKDIR /app
 COPY requirements.txt .
 
 # Install CPU-only PyTorch
-RUN pip install --default-timeout=1000 --retries=10 --no-cache-dir \
-    torch==2.3.1 \
-    --index-url https://download.pytorch.org/whl/cpu
+RUN pip install --no-cache-dir \
+    --index-url https://download.pytorch.org/whl/cpu \
+    torch==2.3.1
 
-# Install the remaining packages
-RUN pip install --default-timeout=1000 --retries=10 --no-cache-dir \
+# Install the rest
+RUN pip install --no-cache-dir \
     -r requirements.txt
-COPY . .
 
+COPY . .
 # Hits our own /health endpoint. Uses python's stdlib (urllib) instead of
 # adding a curl-based check, so no extra image bloat beyond what's above.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
