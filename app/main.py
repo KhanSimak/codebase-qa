@@ -48,6 +48,14 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5500"],  # or your frontend URL
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 app.include_router(repos.router,       prefix="/repos", tags=["repos"])
 app.include_router(search.router,      prefix="/repos", tags=["search (baseline)"])
 app.include_router(query.router,       prefix="/repos", tags=["query (final pipeline)"])
@@ -70,10 +78,3 @@ async def health():
         ],
     }
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # or your frontend URL
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
