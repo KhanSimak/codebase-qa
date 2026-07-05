@@ -9,8 +9,15 @@ WORKDIR /app
 # Copy requirements first so Docker caches this layer — rebuilding after a
 # code-only change won't re-download torch/transformers/onnxruntime again.
 COPY requirements.txt .
-RUN pip install --default-timeout=1000 --retries=10 --no-cache-dir -r requirements.txt
 
+# Install CPU-only PyTorch
+RUN pip install --default-timeout=1000 --retries=10 --no-cache-dir \
+    torch==2.3.1 \
+    --index-url https://download.pytorch.org/whl/cpu
+
+# Install the remaining packages
+RUN pip install --default-timeout=1000 --retries=10 --no-cache-dir \
+    -r requirements.txt
 COPY . .
 
 # Hits our own /health endpoint. Uses python's stdlib (urllib) instead of
