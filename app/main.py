@@ -12,6 +12,7 @@ Routers:
   /stats    — cache hit rate
   /eval     — retrieval benchmark (Recall@5, Recall@10, MRR, latency, worst files)
 """
+from fastapi.middleware.cors import CORSMiddleware
 
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
@@ -68,3 +69,11 @@ async def health():
             "sse_streaming", "incremental_ingest", "recall_mrr_eval_framework",
         ],
     }
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # or your frontend URL
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
