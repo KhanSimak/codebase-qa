@@ -29,4 +29,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
 # and wastes CPU in a deployed container. For local dev with hot-reload,
 # run uvicorn directly on your host (see the VS Code setup) instead of
 # through this image, or override the command in docker-compose.
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
