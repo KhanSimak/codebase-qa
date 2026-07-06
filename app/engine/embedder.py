@@ -26,7 +26,13 @@ from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 import asyncio
 import logging
+import os
+import gc
 
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["ORT_NUM_THREADS"] = "1"
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 logger = logging.getLogger(__name__)
 
 _tokenizer = None
@@ -115,4 +121,8 @@ async def embed_batch(texts: list[str]) -> list[list[float]]:
         batch = texts[i:i + 32]
         vectors = await loop.run_in_executor(_executor, _encode_sync, batch)
         all_vectors.extend(vectors)
+    
+
+    del vectors
+    gc.collect()
     return all_vectors
