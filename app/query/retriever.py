@@ -169,9 +169,11 @@ async def retrieve(
         c["name"],
         c["type"]
     )
+
     print("Question vector hits:", len(question_hits))
     print("HyDE vector hits:", len(hyde_hits))
     print("BM25 hits:", len(keyword_hits_list))
     print("Fused IDs:", len(fused_ids))
     print("Fused chunks:", len(fused_chunks))
     print("Graph expanded:", len(expanded) if graph_expand else "Skipped")
+    return expanded
