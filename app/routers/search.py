@@ -45,7 +45,7 @@ _llm = AsyncGroq(
 async def search_endpoint(
     repo_id: str,
     request: Request,
-    q:       str = Query(..., min_length=3, description="Your question about the codebase"),
+    question: str = Query(..., min_length=3, description="Your question about the codebase"),
     top_k:   int = Query(default=5, ge=1, le=20),
 ):
     registry = get_registry()
@@ -60,18 +60,18 @@ async def search_endpoint(
     t0 = time.perf_counter()
 
     # ── Layer 1 cache check — exact question, exact repo, exact top_k ──────
-    cached = await get_cached_query(redis_client, repo_id, q, top_k)
+    cached = await get_cached_query(redis_client, repo_id, question, top_k)
     if cached:
         cached["latency_ms"] = {"embed_ms": 0, "search_ms": 0, "total_ms": round((time.perf_counter() - t0) * 1000, 1), "cache_hit": True}
         return SearchResponse(**cached)
 
     # ── Step 1 — embed the query (with Layer 2 cache check) ────────────────
-    cached_vector = await get_cached_embedding(redis_client, q)
+    cached_vector = await get_cached_embedding(redis_client, question)
     if cached_vector:
         vector = cached_vector
     else:
-        vector = await embed_text(q, is_query=True)
-        await set_cached_embedding(redis_client, q, vector)
+        vector = await embed_text(question, is_query=True)
+        await set_cached_embedding(redis_client, question, vector)
     t_embed = round((time.perf_counter() - t0) * 1000, 1)
 
     # ── Step 2 — vector search AND BM25 search IN PARALLEL ─────────────────
@@ -80,13 +80,13 @@ async def search_endpoint(
     # instant, but running them together still avoids serializing the wait
     # on Qdrant behind anything else we might add to this gather later.
     vector_hits_task = vector_search(qdrant, cfg.qdrant_collection, vector, repo_id, top_k=20)
-    keyword_hits = bm25_search(repo_id, q, top_k=20)   # sync, fast, no need to await
+    keyword_hits = bm25_search(repo_id, question, top_k=20)   # sync, fast, no need to await
     vector_hits = await vector_hits_task
     t_search = round((time.perf_counter() - t0) * 1000, 1)
 
     if not vector_hits and not keyword_hits:
         return SearchResponse(
-            question=q, answer="No relevant code found in this repository.",
+            question=question, answer="No relevant code found in this repository.",
             sources=[], latency_ms={"embed_ms": t_embed, "search_ms": t_search, "total_ms": t_search, "cache_hit": False},
         )
 
@@ -119,7 +119,7 @@ async def search_endpoint(
             "content": (
                 f"Answer this question about the codebase using only the context below.\n\n"
                 f"Context:\n{context}\n\n"
-                f"Question: {q}\n\n"
+                f"Question: {question}\n\n"
                 f"Answer concisely. Always cite the file name and function/class name."
             ),
         }],
@@ -128,7 +128,7 @@ async def search_endpoint(
     t_total = round((time.perf_counter() - t0) * 1000, 1)
 
     result_payload = {
-        "question": q,
+        "question": question,
         "answer":   answer,
         "sources": [
             ChunkOut(
@@ -142,7 +142,7 @@ async def search_endpoint(
     }
 
     # Cache the full result for next time (5 min TTL)
-    await set_cached_query(redis_client, repo_id, q, top_k, result_payload)
+    await set_cached_query(redis_client, repo_id, question, top_k, result_payload)
 
     return SearchResponse(
         **result_payload,
@@ -154,7 +154,7 @@ async def search_endpoint(
 async def list_chunks(
     repo_id: str,
     request: Request,
-    q:       str = Query(..., description="Search query, used to find similar chunks"),
+    question:       str = Query(..., description="Search query, used to find similar chunks"),
     top_k:   int = Query(default=10, ge=1, le=50),
     mode:    str = Query(default="hybrid", regex="^(vector|hybrid)$", description="'vector' = Qdrant only, 'hybrid' = vector+BM25+RRF"),
 ):
@@ -170,13 +170,13 @@ async def list_chunks(
     cfg    = request.app.state.settings
     qdrant = request.app.state.qdrant
 
-    vector = await embed_text(q, is_query=True)
+    vector = await embed_text(question, is_query=True)
     vector_hits = await vector_search(qdrant, cfg.qdrant_collection, vector, repo_id, top_k=top_k)
 
     if mode == "vector":
-        return {"query": q, "mode": "vector", "count": len(vector_hits), "chunks": vector_hits}
+        return {"query": question, "mode": "vector", "count": len(vector_hits), "chunks": vector_hits}
 
-    keyword_hits = bm25_search(repo_id, q, top_k=top_k)
+    keyword_hits = bm25_search(repo_id, question, top_k=top_k)
     fused_ids = reciprocal_rank_fusion(vector_hits, keyword_hits, top_k=top_k)
 
     vector_lookup = {h["id"]: h for h in vector_hits}
@@ -187,6 +187,6 @@ async def list_chunks(
     chunks = [c for c in chunks if c]
 
     return {
-        "query": q, "mode": "hybrid", "count": len(chunks), "chunks": chunks,
+        "query": question, "mode": "hybrid", "count": len(chunks), "chunks": chunks,
         "debug": {"vector_hit_count": len(vector_hits), "bm25_hit_count": len(keyword_hits)},
     }
