@@ -187,7 +187,7 @@ async def stream_query(question: str, repo_id: str, qdrant_client, redis_client,
     final_chunks = select_context(reranked, max_tokens=800)
 
     stage_select.finish()
-    system_prompt, user_msg = build_prompt(question, final_chunks)
+    system_prompt, user_msg = build_prompt(question, final_chunks,rewrite["intent"])
 
     stage_llm = trace.start_stage("llm_generation")
     stage_llm.input_tokens = count_tokens(system_prompt) + count_tokens(user_msg)
