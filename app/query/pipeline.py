@@ -62,7 +62,7 @@ async def _do_retrieval_and_rerank(question: str, repo_id: str, qdrant_client, r
         redis_client=redis_client, cfg=cfg, top_k=cfg.query_top_k, graph_expand=graph_expand,
     )
     stage_retrieve.finish()
-
+    print("Candidates:", len(candidates))
     if not candidates:
         return [], rewrite
 
@@ -78,7 +78,7 @@ async def _do_retrieval_and_rerank(question: str, repo_id: str, qdrant_client, r
         c.get("rerank_score"),
     )
     stage_rerank.finish()
-
+    print("Reranked:", len(reranked))
     return reranked, rewrite
 
 
