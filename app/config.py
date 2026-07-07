@@ -13,7 +13,7 @@ from functools import lru_cache
 
 class Settings(BaseSettings):
     groq_api_key:      str 
-
+    qdrant_api_key: str | None = None   # <-- ADD THIS
     qdrant_url:        str = "http://localhost:6333"
     qdrant_collection: str = "codebase"
     vector_size:       int = 384          # bge-small-en-v1.5 output dimension
