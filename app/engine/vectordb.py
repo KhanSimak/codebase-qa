@@ -7,6 +7,7 @@ separate collection per repo. This scales better — Qdrant collections
 have fixed overhead, and pre-filtering by a payload field before the
 ANN (approximate nearest neighbor) scan is fast and well-supported.
 """
+from qdrant_client.http.models import PayloadSchemaType
 
 from qdrant_client import AsyncQdrantClient
 from qdrant_client.models import (
@@ -19,10 +20,13 @@ logger = logging.getLogger(__name__)
 
 
 async def init_qdrant(cfg) -> AsyncQdrantClient:
-    """Called once at startup. Creates the collection if it doesn't exist yet."""
     print(cfg.qdrant_url)
     print(cfg.qdrant_api_key[:10])
-    client = AsyncQdrantClient(url=cfg.qdrant_url, api_key=cfg.qdrant_api_key,)
+
+    client = AsyncQdrantClient(
+        url=cfg.qdrant_url,
+        api_key=cfg.qdrant_api_key,
+    )
 
     collections = await client.get_collections()
     existing = [c.name for c in collections.collections]
@@ -30,14 +34,27 @@ async def init_qdrant(cfg) -> AsyncQdrantClient:
     if cfg.qdrant_collection not in existing:
         await client.create_collection(
             collection_name=cfg.qdrant_collection,
-            vectors_config=VectorParams(size=cfg.vector_size, distance=Distance.COSINE),
+            vectors_config=VectorParams(
+                size=cfg.vector_size,
+                distance=Distance.COSINE,
+            ),
         )
-        logger.info(f"Created Qdrant collection: {cfg.qdrant_collection}")
+        logger.info(f"Created collection: {cfg.qdrant_collection}")
     else:
-        logger.info(f"Qdrant collection already exists: {cfg.qdrant_collection}")
+        logger.info(f"Collection already exists: {cfg.qdrant_collection}")
+
+    # Create payload index for repo_id
+    try:
+        await client.create_payload_index(
+            collection_name=cfg.qdrant_collection,
+            field_name="repo_id",
+            field_schema=PayloadSchemaType.KEYWORD,
+        )
+        logger.info("repo_id payload index ready")
+    except Exception as e:
+        logger.info(f"Payload index already exists or couldn't be created: {e}")
 
     return client
-
 
 def _repo_filter(repo_id: str) -> Filter:
     """
