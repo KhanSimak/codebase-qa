@@ -31,7 +31,7 @@ async def lifespan(app: FastAPI):
     app.state.settings = cfg
     app.state.qdrant    = await init_qdrant(cfg)
     app.state.embedder  = load_embedder(cfg)
-    app.state.reranker  = load_reranker(cfg)
+    
     app.state.redis     = await init_redis(cfg)
     yield
     await app.state.redis.aclose()
