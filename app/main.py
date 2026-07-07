@@ -19,7 +19,7 @@ from fastapi import FastAPI
 
 from app.config import get_settings
 from app.engine.embedder import load_embedder
-from app.engine.reranker import load_reranker
+
 from app.engine.vectordb import init_qdrant
 from app.cache.redis_cache import init_redis
 from app.routers import repos, search, stats, query, eval as eval_router
