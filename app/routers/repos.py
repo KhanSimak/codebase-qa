@@ -9,6 +9,8 @@ The registry now also tracks `last_commit`, which is what makes
 POST /repos/{id}/sync able to do an INCREMENTAL re-ingest instead of
 starting over from scratch every time.
 """
+import traceback
+
 
 from fastapi import APIRouter, Request, HTTPException
 from datetime import datetime, timezone
@@ -65,6 +67,7 @@ async def create_repo(body: RepoCreate, request: Request):
 
 @router.get("/{repo_id}", response_model=RepoStatus)
 async def get_repo(repo_id: str, request: Request):
+    print("Registry during GET:", _registry.keys())
     if repo_id not in _registry:
         raise HTTPException(404, "Repo not found")
 
@@ -75,7 +78,7 @@ async def get_repo(repo_id: str, request: Request):
         cfg    = request.app.state.settings
         qdrant = request.app.state.qdrant
         meta["chunk_count"] = await count_repo_chunks(qdrant, cfg.qdrant_collection, repo_id)
-
+    print("Registry after POST:", _registry.keys())
     return RepoStatus(**meta)
 
 
@@ -122,9 +125,12 @@ async def sync_repo(repo_id: str, request: Request):
             _registry[repo_id]["status"] = "done"
             _registry[repo_id]["last_commit"] = result["new_commit"]
             _registry[repo_id]["last_sync"] = result
+ 
         except Exception as e:
-            _registry[repo_id]["status"] = "failed"
-            _registry[repo_id]["error"]  = str(e)
+            traceback.print_exc()
+
+        _registry[repo_id]["status"] = "failed"
+        _registry[repo_id]["error"] = traceback.format_exc()
 
     asyncio.create_task(_background_sync())
     return {"repo_id": repo_id, "status": "ingesting", "message": "Incremental sync started — poll GET /repos/{id} for progress"}

@@ -172,7 +172,21 @@ async def run_ingest(repo_id: str, github_url: str, branch: str, qdrant_client, 
     logger.info(f"Ingest complete for {repo_id}: {len(all_chunks)} chunks in {elapsed}s")
 
     commit_hash = git.Repo(local_path).head.commit.hexsha
+    print("STEP 1 Clone")
+    local_path = clone_repo(...)
 
+    print("STEP 2 Walk")
+    files = _walk_python_files(local_path)
+
+    print("STEP 3 Chunk")
+    print("STEP 4 Build profile")
+    print("STEP 5 Delete old vectors")
+    print("STEP 6 Cache lookup")
+    print("STEP 7 Embed")
+    print("STEP 8 Upsert")
+    print("STEP 9 BM25")
+    print("STEP 10 Done")
+    
     return {
         "status":          "done",
         "chunk_count":     len(all_chunks),
