@@ -27,16 +27,20 @@ from app.routers import repos, search, stats, query, eval as eval_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+
     cfg = get_settings()
+
     app.state.settings = cfg
-    app.state.qdrant    = await init_qdrant(cfg)
-    
-    
-    app.state.redis     = await init_redis(cfg)
+
+    app.state.qdrant = await init_qdrant(cfg)
+
+    app.state.embedder = load_embedder(cfg)
+
+    app.state.redis = await init_redis(cfg)
+
     yield
+
     await app.state.redis.aclose()
-
-
 app = FastAPI(
     title="Codebase Q&A Engine — Final Phase",
     description=(
