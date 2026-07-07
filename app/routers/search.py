@@ -19,6 +19,7 @@ from groq import AsyncGroq
 import asyncio
 import time
 import logging
+from pprint import pprint
 
 from app.engine.embedder import embed_text
 from app.engine.vectordb import search as vector_search, retrieve_by_ids
@@ -141,6 +142,7 @@ async def search_endpoint(
         ],
     }
 
+    pprint(result_payload["sources"][0])
     # Cache the full result for next time (5 min TTL)
     await set_cached_query(redis_client, repo_id, question, top_k, result_payload)
 

@@ -78,7 +78,7 @@ async def get_cached_query(r: redis.Redis, repo_id: str, question: str, top_k: i
         logger.warning(f"Cache read failed (treating as miss): {e}")
         return None
 
-
+    
 async def set_cached_query(r: redis.Redis, repo_id: str, question: str, top_k: int, result: dict, ttl_seconds: int = 300) -> None:
     try:
         await r.setex(_query_key(repo_id, question, top_k), ttl_seconds, json.dumps(result))
