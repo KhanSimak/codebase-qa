@@ -20,6 +20,8 @@ logger = logging.getLogger(__name__)
 
 async def init_qdrant(cfg) -> AsyncQdrantClient:
     """Called once at startup. Creates the collection if it doesn't exist yet."""
+    print(cfg.qdrant_url)
+    print(cfg.qdrant_api_key[:10])
     client = AsyncQdrantClient(url=cfg.qdrant_url, api_key=cfg.qdrant_api_key,)
 
     collections = await client.get_collections()
