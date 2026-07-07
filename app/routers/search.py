@@ -144,8 +144,15 @@ async def search_endpoint(
 
     pprint(result_payload["sources"][0])
     # Cache the full result for next time (5 min TTL)
-    await set_cached_query(redis_client, repo_id, question, top_k, result_payload)
-
+    
+    await set_cached_query(
+     redis_client,
+     repo_id,
+     question,
+     top_k,
+     result_payload,
+)
+    
     return SearchResponse(
         **result_payload,
         latency_ms={"embed_ms": t_embed, "search_ms": t_search, "total_ms": t_total, "cache_hit": False},
