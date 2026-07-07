@@ -28,7 +28,7 @@ chunk and the final chunk, so it's guarded below).
 import json
 import logging
 from groq import AsyncGroq
-
+from app.schemas.api import SearchResponse
 from app.engine.cost_tracker import RequestTrace
 from app.engine.reranker import rerank
 from app.engine.token_budget import  select_context, build_prompt, count_tokens
@@ -36,7 +36,7 @@ from app.query.rewriter import rewrite_query, GRAPH_EXPAND_INTENTS
 from app.query.retriever import retrieve
 from app.cache.redis_cache import get_cached_query, set_cached_query
 from app.config import get_settings
-
+import time
 settings = get_settings()
 
 _llm = AsyncGroq(
@@ -84,15 +84,23 @@ async def _do_retrieval_and_rerank(question: str, repo_id: str, qdrant_client, r
 
 async def run_query(question: str, repo_id: str, qdrant_client, redis_client, cfg, top_k: int = 5) -> dict:
     trace = RequestTrace(query=question, repo_id=repo_id)
-
+    t0 = time.perf_counter()
     # ── Stage 1: L1 cache ────────────────────────────────────────────────
     stage_cache = trace.start_stage("query_cache_l1")
     cached = await get_cached_query(redis_client, repo_id, question, top_k)
-    stage_cache.cache_hit = cached is not None
-    stage_cache.finish()
-    if cached:
-        return {**cached, "cache_hit": True, "trace": trace.summary()}
 
+    print("CACHE:", cached is not None)
+
+    if cached:
+      from pprint import pprint
+      pprint(cached["sources"][0])
+      cached["latency_ms"] = {
+        "embed_ms": 0,
+        "search_ms": 0,
+        "total_ms": round((time.perf_counter() - t0) * 1000, 1),
+        "cache_hit": True,
+    }
+      return SearchResponse(**cached)
     reranked, rewrite = await _do_retrieval_and_rerank(question, repo_id, qdrant_client, redis_client, cfg, top_k, trace)
 
     if not reranked:
@@ -140,20 +148,29 @@ async def run_query(question: str, repo_id: str, qdrant_client, redis_client, cf
     stage_llm.finish()
 
     result = {
-        "question": question,
-        "answer":   answer,
-        "rewritten_query": rewrite["implementation_summary"],
-        "intent":   rewrite["intent"],
-        "sources": [
-            {
-                "id": c["id"], "name": c.get("name", ""), "type": c.get("type", ""),
-                "file": c.get("file", ""), "line_start": c.get("line_start", 0),
-                "line_end": c.get("line_end", 0), "score": c.get("rerank_score", c.get("score", 0.0)),
-            }
-            for c in reranked
-        ],
+     "question": question,
+    "answer": answer,
+    "rewritten_query": rewrite["implementation_summary"],
+    "intent": rewrite["intent"],
+    "sources": [
+        {
+            "id": c["id"],
+            "name": c.get("name", ""),
+            "type": c.get("type", ""),
+            "file": c.get("file", ""),
+            "language": c.get("language", ""),
+            "line_start": c.get("line_start", 0),
+            "line_end": c.get("line_end", 0),
+            "docstring": c.get("docstring", ""),
+            "calls": c.get("calls", []),
+            "raw_source": c.get("raw_source", ""),
+            "score": c.get("rerank_score", c.get("score", 0.0)),
+        }
+        for c in reranked
+    ],
         "cache_hit": False,
-    }
+}
+    
     await set_cached_query(redis_client, repo_id, question, top_k, result)
     return {**result, "trace": trace.summary()}
 
@@ -176,8 +193,19 @@ async def stream_query(question: str, repo_id: str, qdrant_client, redis_client,
         return
 
     sources = [
-        {"id": c["id"], "name": c.get("name"), "file": c.get("file"),
-         "line_start": c.get("line_start"), "line_end": c.get("line_end")}
+            {
+        "id": c["id"],
+        "name": c.get("name", ""),
+        "type": c.get("type", ""),
+        "file": c.get("file", ""),
+        "language": c.get("language", ""),
+        "line_start": c.get("line_start", 0),
+        "line_end": c.get("line_end", 0),
+        "docstring": c.get("docstring", ""),
+        "calls": c.get("calls", []),
+        "raw_source": c.get("raw_source", ""),
+        "score": c.get("rerank_score", c.get("score", 0.0)),
+        }
         for c in reranked
     ]
     yield f"data: {json.dumps({'type':'sources','sources':sources,'rewrite':rewrite['implementation_summary'],'intent':rewrite['intent']})}\n\n"
