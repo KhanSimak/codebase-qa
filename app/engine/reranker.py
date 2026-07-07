@@ -35,3 +35,9 @@ async def embed_batch(texts):
     )
 
     return vectors.tolist()
+def load_reranker(cfg):
+    return None
+
+
+async def rerank(question, chunks, top_n=5):
+    return chunks[:top_n]
