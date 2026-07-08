@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     redis_url:         str = "redis://localhost:6379"
 
     repos_dir:         str = "/tmp/repos"
-    embed_model: str = "sentence-transformers/all-MiniLM-L6-v2"
+    embed_model:       str = "BAAI/bge-small-en-v1.5"
     rerank_model:      str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 
     # llama-3.1-8b-instant: cheapest production model on Groq ($0.05/$0.08
