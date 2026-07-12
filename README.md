@@ -6,7 +6,6 @@ This is the **final phase** of the project, built on top of Phase 1 (AST chunkin
 
 > **LLM provider: Groq, not Anthropic.** Every text-generation call (HyDE rewriting, context compression, the final answer) runs on Groq's `llama-3.1-8b-instant` instead of Claude. Groq has a genuine no-credit-card free tier (~30 requests/min, ~6,000 tokens/min, 14,400 requests/day) and is dramatically faster (~560 tokens/sec on Groq's custom LPU hardware) — you'll notice the `llm_generation` stage in the cost trace below is the FASTEST stage in the pipeline, not the slowest. Get a free key at [console.groq.com/keys](https://console.groq.com/keys). The only embedding/reranking models (ONNX + CrossEncoder) are unaffected — those were always local and free regardless of LLM provider.
 
----
 
 ## What's new in this phase
 
